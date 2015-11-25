@@ -1,0 +1,11 @@
+language: go
+go:
+  - 1.4
+  - 1.5
+script:
+  - go test -race -v -bench=. ./...
+notifications:
+  email: false
+env:
+  # todo: support okq somehow
+  - POSTMASTER_SENDGRID_KEY="test" POSTMASTER_OKQ_ADDR=""
