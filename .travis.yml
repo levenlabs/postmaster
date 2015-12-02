@@ -8,4 +8,15 @@ notifications:
   email: false
 env:
   # todo: support okq somehow
-  - POSTMASTER_SENDGRID_KEY="test" POSTMASTER_OKQ_ADDR=""
+  - POSTMASTER_SENDGRID_KEY="test"
+services:
+  - mongodb
+  - redis-server
+before_install:
+  - go get -u github.com/mc0/okq
+before_script:
+  - |
+    okq &
+    OKQ_PID=$!
+after_script:
+  - kill $OKQ_PID
