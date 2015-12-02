@@ -11,12 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	normalQueue = fmt.Sprintf("email-normal-%s", testutil.RandStr())
-	statsQueue = fmt.Sprintf("stats-normal-%s", testutil.RandStr())
-}
-
 func TestStoreSendJob(t *T) {
+	// randomize the queue so the consumer that's consuming jobs doesn't pick
+	// up our job and try to process it
+	existingQueue := normalQueue
+	defer func() {
+		normalQueue = existingQueue
+	}()
+	normalQueue = fmt.Sprintf("%s", testutil.RandStr())
+
 	err := StoreSendJob("hello")
 	require.Nil(t, err)
 
@@ -33,6 +36,14 @@ func TestStoreSendJob(t *T) {
 }
 
 func TestStoreStatsJob(t *T) {
+	// randomize the queue so the consumer that's consuming jobs doesn't pick
+	// up our job and try to process it
+	existingQueue := statsQueue
+	defer func() {
+		statsQueue = existingQueue
+	}()
+	statsQueue = fmt.Sprintf("%s", testutil.RandStr())
+
 	err := StoreStatsJob("hello2")
 	require.Nil(t, err)
 

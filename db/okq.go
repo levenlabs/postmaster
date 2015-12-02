@@ -44,26 +44,23 @@ func init() {
 	}()
 
 	llog.Info("creating okq send consumer", llog.KV{"okqAddr": config.OKQAddr})
-	okqSendConsumer := okq.New(config.OKQAddr)
 	// Receive jobs from okq and send to sender
-	go func() {
-		for {
-			err := okqSendConsumer.Consumer(handleSendEvent, nil, normalQueue)
-			llog.Error("send consumer error", llog.KV{"err": err})
-			time.Sleep(10 * time.Second)
-		}
-	}()
+	consumeSpin(handleSendEvent, normalQueue)
 
 	llog.Info("creating okq stats consumer", llog.KV{"okqAddr": config.OKQAddr})
-	okqStatsConsumer := okq.New(config.OKQAddr)
 	// Receive jobs from okq and store in stats
-	go func() {
+	consumeSpin(handleStatsEvent, statsQueue)
+}
+
+func consumeSpin(fn func(e *okq.Event) bool, q string) {
+	consumer := okq.New(config.OKQAddr)
+	go func(c *okq.Client) {
 		for {
-			err := okqStatsConsumer.Consumer(handleStatsEvent, nil, statsQueue)
-			llog.Error("stats consumer error", llog.KV{"err": err})
+			err := c.Consumer(fn, nil, q)
+			llog.Error("consumer error", llog.KV{"err": err, "queue": q})
 			time.Sleep(10 * time.Second)
 		}
-	}()
+	}(consumer)
 }
 
 func StoreSendJob(jobContents string) error {
