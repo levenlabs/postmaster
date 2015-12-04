@@ -2,12 +2,12 @@ package db
 
 import (
 	"github.com/levenlabs/golib/testutil"
+	"github.com/levenlabs/golib/timeutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/validator.v2"
 	. "testing"
 	"time"
-	"github.com/levenlabs/golib/timeutil"
 )
 
 func init() {
@@ -15,6 +15,9 @@ func init() {
 }
 
 func TestGenerateEmailID(t *T) {
+	if mongoDisabled {
+		return
+	}
 	id := GenerateEmailID("test@test", 1, "")
 	require.NotEmpty(t, id)
 
@@ -28,6 +31,9 @@ func TestGenerateEmailID(t *T) {
 }
 
 func TestDeleteEmailID(t *T) {
+	if mongoDisabled {
+		return
+	}
 	id := GenerateEmailID("test@test", 1, "")
 	require.NotEmpty(t, id)
 
@@ -39,6 +45,9 @@ func TestDeleteEmailID(t *T) {
 }
 
 func TestMarkAs(t *T) {
+	if mongoDisabled {
+		return
+	}
 	id := GenerateEmailID("test@test", 0, "")
 	require.NotEmpty(t, id)
 
@@ -52,6 +61,9 @@ func TestMarkAs(t *T) {
 }
 
 func TestValidation(t *T) {
+	if mongoDisabled {
+		return
+	}
 	s := &StatsJob{}
 	assert.NotNil(t, validator.Validate(s))
 
@@ -87,6 +99,9 @@ func TestValidation(t *T) {
 }
 
 func TestGetLastUniqueID(t *T) {
+	if mongoDisabled {
+		return
+	}
 	email := "test@test"
 	id := GenerateEmailID(email, 1, "hey")
 	require.NotEmpty(t, id)

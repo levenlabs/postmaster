@@ -12,6 +12,9 @@ import (
 )
 
 func TestStoreSendJob(t *T) {
+	if jobCh == nil {
+		return
+	}
 	// randomize the queue so the consumer that's consuming jobs doesn't pick
 	// up our job and try to process it
 	existingQueue := normalQueue
@@ -36,6 +39,9 @@ func TestStoreSendJob(t *T) {
 }
 
 func TestStoreStatsJob(t *T) {
+	if jobCh == nil {
+		return
+	}
 	// randomize the queue so the consumer that's consuming jobs doesn't pick
 	// up our job and try to process it
 	existingQueue := statsQueue

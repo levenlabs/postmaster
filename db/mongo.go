@@ -74,11 +74,15 @@ func init() {
 // this is ONLY exported so webhook_test can use it
 // todo: we should find a way around exporting this
 func RandomizeColls() {
-	statsSH.DB = "test"
-	statsSH.Coll = fmt.Sprintf("records-%s", testutil.RandStr())
+	if !mongoDisabled {
+		statsSH.DB = "test"
+		statsSH.Coll = fmt.Sprintf("records-%s", testutil.RandStr())
+	}
 
-	emailSH.DB = "test"
-	emailSH.Coll = fmt.Sprintf("emails-%s", testutil.RandStr())
+	if !mongoDisabled {
+		emailSH.DB = "test"
+		emailSH.Coll = fmt.Sprintf("emails-%s", testutil.RandStr())
+	}
 }
 
 // VerifyEmailAllowed verifies that we're allowed to send an email with flags to

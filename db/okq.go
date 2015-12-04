@@ -19,7 +19,7 @@ var (
 	uniqueArgID = "pmStatsID"
 )
 
-var jobCh chan job = make(chan job)
+var jobCh chan job
 
 type job struct {
 	Queue    string
@@ -31,6 +31,7 @@ func init() {
 	if config.OKQAddr == "" {
 		return
 	}
+	jobCh = make(chan job)
 
 	rand.Seed(time.Now().UTC().UnixNano())
 

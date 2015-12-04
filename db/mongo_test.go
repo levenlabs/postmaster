@@ -13,6 +13,9 @@ func init() {
 }
 
 func TestStoreEmailFlags(t *T) {
+	if mongoDisabled {
+		return
+	}
 	emailSH.WithColl(func(c *mgo.Collection) {
 		email := "test@test.com"
 		err := StoreEmailFlags(email, 1)
@@ -27,6 +30,9 @@ func TestStoreEmailFlags(t *T) {
 }
 
 func TestVerifyEmailAllowed(t *T) {
+	if mongoDisabled {
+		return
+	}
 	email := "test1@test.com"
 	err := StoreEmailFlags(email, 1)
 	require.Nil(t, err)
@@ -39,6 +45,9 @@ func TestVerifyEmailAllowed(t *T) {
 }
 
 func TestStoreEmailBounce(t *T) {
+	if mongoDisabled {
+		return
+	}
 	emailSH.WithColl(func(c *mgo.Collection) {
 		email := "test2@test.com"
 		err := StoreEmailBounce(email)
@@ -55,6 +64,9 @@ func TestStoreEmailBounce(t *T) {
 }
 
 func TestStoreEmailSpam(t *T) {
+	if mongoDisabled {
+		return
+	}
 	emailSH.WithColl(func(c *mgo.Collection) {
 		email := "test3@test.com"
 		err := StoreEmailSpam(email)

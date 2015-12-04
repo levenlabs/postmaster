@@ -23,7 +23,7 @@ var testEmail = "webhooktest@test"
 func TestHookHandlerPassword(t *T) {
 	config.WebhookPassword = "test"
 
-	str := []byte(`[{"email":"webhooktest@test","timestamp":1,"event":"test"}]`)
+	str := []byte(`[{"email":"webhooktest@test","timestamp":1,"event":"test","pmStatsID":"s"}]`)
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	r.SetBasicAuth("anything", "test")
@@ -37,7 +37,7 @@ func TestHookHandlerOpen(t *T) {
 	config.WebhookPassword = ""
 
 	id := db.GenerateEmailID(testEmail, 0, "")
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"open"}]`, id))
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"open"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
