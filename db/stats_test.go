@@ -7,6 +7,7 @@ import (
 	"gopkg.in/validator.v2"
 	. "testing"
 	"time"
+	"github.com/levenlabs/golib/timeutil"
 )
 
 func init() {
@@ -56,7 +57,7 @@ func TestValidation(t *T) {
 
 	s = &StatsJob{
 		Email:     "fake",
-		Timestamp: testutil.RandInt64(),
+		Timestamp: timeutil.TimestampNow(),
 		Type:      testutil.RandStr(),
 		StatsID:   testutil.RandStr(),
 	}
@@ -64,7 +65,7 @@ func TestValidation(t *T) {
 
 	s = &StatsJob{
 		Email:     "fake@test",
-		Timestamp: testutil.RandInt64(),
+		Timestamp: timeutil.TimestampNow(),
 		Type:      testutil.RandStr(),
 		StatsID:   testutil.RandStr(),
 	}
@@ -72,14 +73,14 @@ func TestValidation(t *T) {
 
 	s = &StatsJob{
 		Email:     "fake@test",
-		Timestamp: testutil.RandInt64(),
+		Timestamp: timeutil.TimestampNow(),
 		StatsID:   testutil.RandStr(),
 	}
 	assert.NotNil(t, validator.Validate(s))
 
 	s = &StatsJob{
 		Email:     "fake@test",
-		Timestamp: testutil.RandInt64(),
+		Timestamp: timeutil.TimestampNow(),
 		Type:      testutil.RandStr(),
 	}
 	assert.NotNil(t, validator.Validate(s))

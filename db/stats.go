@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/levenlabs/go-llog"
 	"github.com/levenlabs/golib/rpcutil"
+	"github.com/levenlabs/golib/timeutil"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -28,7 +29,7 @@ type StatsJob struct {
 	//Email address of the intended recipient
 	Email string `json:"email" validate:"email,nonzero"`
 
-	Timestamp int64 `json:"timestamp,omitempty"`
+	Timestamp timeutil.Timestamp `json:"timestamp,omitempty"`
 
 	//Type is one of: bounce, deferred, delivered, dropped, processed
 	Type string `json:"event" validate:"nonzero"`
@@ -59,10 +60,10 @@ type StatDoc struct {
 	UniqueID string `json:"uniqueID" bson:"uid"`
 
 	// TSCreated is the time that the email was sent
-	TSCreated time.Time `json:"tsCreated" bson:"tc"`
+	TSCreated timeutil.Timestamp `json:"tsCreated" bson:"tc"`
 
 	// TSUpdated is the last time this doc was updated
-	TSUpdated time.Time `json:"tsUpdated" bson:"ts"`
+	TSUpdated timeutil.Timestamp `json:"tsUpdated" bson:"ts"`
 
 	// Error is the reason for why the email errored
 	Error string `json:"error" bson:"err,omitempty"`
@@ -78,7 +79,7 @@ func GenerateEmailID(recipient string, flags int64, uid string) string {
 	if mongoDisabled {
 		return ""
 	}
-	now := time.Now()
+	now := timeutil.TimestampNow()
 	doc := &StatDoc{
 		Recipient:  recipient,
 		EmailFlags: flags,

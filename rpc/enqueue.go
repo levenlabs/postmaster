@@ -14,11 +14,9 @@ import (
 	"github.com/levenlabs/postmaster/sender"
 )
 
-type enqueueArgs sender.Mail
-
 // Enqueue queues an email to be sent to sendgrid it accepts an instance of
 // sender.Mail
-func (_ Postmaster) Enqueue(r *http.Request, args *enqueueArgs, reply *successResult) error {
+func (_ Postmaster) Enqueue(r *http.Request, args *sender.Mail, reply *successResult) error {
 	kv := rpcutil.RequestKV(r)
 	// validation of email addresses is done with the validation library
 	// more advanced validation is done in validateEnqueueArgs
@@ -49,7 +47,7 @@ func (_ Postmaster) Enqueue(r *http.Request, args *enqueueArgs, reply *successRe
 	return nil
 }
 
-func validateEnqueueArgs(args *enqueueArgs) error {
+func validateEnqueueArgs(args *sender.Mail) error {
 	if strings.HasSuffix(args.To, "@test") {
 		return errors.New("to address cannot end in @test.com")
 	}
