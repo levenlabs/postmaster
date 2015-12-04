@@ -15,17 +15,44 @@ var (
 	client *sendgrid.SGClient
 )
 
+// Mail encompasses an email that is intended to be sent
 type Mail struct {
-	To         string            `json:"to" validate:"email,nonzero,max=256"`
-	ToName     string            `json:"toName,omitempty" validate:"max=256"`
-	From       string            `json:"from" validate:"email,nonzero,max=256"`
-	FromName   string            `json:"fromName,omitempty"	validate:"max=256"`
-	Subject    string            `json:"subject" validate:"nonzero,max=998"`    // RFC 5322 says not longer than 998
-	HTML       string            `json:"html,omitempty" validate:"max=2097152"` //2MB
-	Text       string            `json:"text,omitempty" validate:"max=2097152"` //2MB
-	ReplyTo    string            `json:"replyTo,omitempty" validate:"max=256"`
+	// To is the email address of the recipient
+	To string `json:"to" validate:"email,nonzero,max=256"`
+
+	// ToName is optional and represents the recipeient's name
+	ToName string `json:"toName,omitempty" validate:"max=256"`
+
+	// From is the email address of the sender
+	From string `json:"from" validate:"email,nonzero,max=256"`
+
+	// FromName is optional and represents the name of the sender
+	FromName string `json:"fromName,omitempty" validate:"max=256"`
+
+	// Subject is the subject of the email
+	Subject string `json:"subject" validate:"nonzero,max=998"` // RFC 5322 says not longer than 998
+
+	// HTML is the HTML body of the email and is required unless Text is sent
+	HTML string `json:"html,omitempty" validate:"max=2097152"` //2MB
+
+	// Text is the plain-text body and is required unless HTML is sent
+	Text string `json:"text,omitempty" validate:"max=2097152"` //2MB
+
+	// ReplyTo is the Reply-To email address for the email
+	ReplyTo string `json:"replyTo,omitempty" validate:"max=256"`
+
+	// UniqueArgs are the SMTP unique arguments passed onto sendgrid
+	// Note: pmStatsID is a reserved key and is used for stats recording
 	UniqueArgs map[string]string `json:"uniqueArgs,omitempty" validate:"argsMap=max=256"`
-	Flags      int64             `json:"flags"`
+
+	// Flags represent the category flags for this email and are used to
+	// determine if the recipient has blocked this category of email
+	Flags int64 `json:"flags"`
+
+	// UniqueID is an optional uniqueID for this email that will be stored with
+	// the email stats and can be used to later query when the last email with
+	// this ID was sent
+	UniqueID string `json:"uniqueID,omitempty" validate:"max=256"`
 }
 
 func init() {
@@ -38,6 +65,7 @@ func init() {
 	validator.SetValidationFunc("argsMap", validateArgsMap)
 }
 
+// Send takes a Mail struct and sends it to sendgrid
 func Send(job *Mail) error {
 	msg := sendgrid.NewMail()
 	msg.AddTo(job.To)
@@ -80,7 +108,7 @@ func validateArgsMap(v interface{}, param string) error {
 	for _, k := range ks {
 		//first check the key
 		if err := validator.Valid(k.Interface(), param); err != nil {
-			return fmt.Errorf("invalid key %s", k.String(), err)
+			return fmt.Errorf("invalid key %s: %s", k.String(), err)
 		}
 		//now check the value
 		kv := vv.MapIndex(k).Interface()

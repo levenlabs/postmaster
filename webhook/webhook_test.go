@@ -11,16 +11,19 @@ import (
 	"github.com/levenlabs/postmaster/config"
 	"github.com/levenlabs/postmaster/db"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
 	db.RandomizeColls()
 }
 
+var testEmail = "webhooktest@test"
+
 func TestHookHandlerPassword(t *T) {
 	config.WebhookPassword = "test"
 
-	str := []byte(`[{"email":"webhooktest@test.com","timestamp":1,"event":"test"}]`)
+	str := []byte(`[{"email":"webhooktest@test","timestamp":1,"event":"test"}]`)
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	r.SetBasicAuth("anything", "test")
@@ -33,8 +36,8 @@ func TestHookHandlerPassword(t *T) {
 func TestHookHandlerOpen(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0)
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test.com","timestamp":1,"stats_id":"%s","event":"open"}]`, id))
+	id := db.GenerateEmailID(testEmail, 0, "")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"open"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -45,15 +48,16 @@ func TestHookHandlerOpen(t *T) {
 	//wait for okq to process the job
 	<-time.After(time.Second)
 
-	doc := db.GetStats(id)
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.Opened), doc.StateFlags)
 }
 
 func TestHookHandlerDelivered(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0)
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test.com","timestamp":1,"stats_id":"%s","event":"delivered"}]`, id))
+	id := db.GenerateEmailID(testEmail, 0, "")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"delivered"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -64,15 +68,16 @@ func TestHookHandlerDelivered(t *T) {
 	//wait for okq to process the job
 	<-time.After(time.Second)
 
-	doc := db.GetStats(id)
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.Delivered), doc.StateFlags)
 }
 
 func TestHookHandlerDropped(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0)
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test.com","timestamp":1,"stats_id":"%s","event":"dropped","reason":"Test"}]`, id))
+	id := db.GenerateEmailID("webhooktest@test.com", 0, "")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"dropped","reason":"Test"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -83,7 +88,8 @@ func TestHookHandlerDropped(t *T) {
 	//wait for okq to process the job
 	<-time.After(time.Second)
 
-	doc := db.GetStats(id)
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.Dropped), doc.StateFlags)
 	assert.Equal(t, "Test", doc.Error)
 }
@@ -91,8 +97,8 @@ func TestHookHandlerDropped(t *T) {
 func TestHookHandlerBounced(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0)
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test.com","timestamp":1,"stats_id":"%s","event":"bounce","reason":"Test"}]`, id))
+	id := db.GenerateEmailID("webhooktest@test.com", 0, "")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"bounce","reason":"Test"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -103,7 +109,8 @@ func TestHookHandlerBounced(t *T) {
 	//wait for okq to process the job
 	<-time.After(time.Second)
 
-	doc := db.GetStats(id)
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.Bounced), doc.StateFlags)
 	assert.Equal(t, "Test", doc.Error)
 }
@@ -111,8 +118,8 @@ func TestHookHandlerBounced(t *T) {
 func TestHookHandlerSpamReport(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0)
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test.com","timestamp":1,"stats_id":"%s","event":"spamreport"}]`, id))
+	id := db.GenerateEmailID(testEmail, 0, "")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"spamreport"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -123,18 +130,19 @@ func TestHookHandlerSpamReport(t *T) {
 	//wait for okq to process the job
 	<-time.After(time.Second)
 
-	doc := db.GetStats(id)
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.SpamReported), doc.StateFlags)
 }
 
 func TestHookHandlerDeliveredMultiple(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0)
-	id2 := db.GenerateEmailID("webhooktest@test.com", 0)
+	id := db.GenerateEmailID(testEmail, 0, "")
+	id2 := db.GenerateEmailID(testEmail, 0, "")
 	str := []byte(fmt.Sprintf(`[
-	{"email":"webhooktest@test.com","timestamp":1,"stats_id":"%s","event":"delivered"},
-	{"email":"webhooktest@test.com","timestamp":2,"stats_id":"%s","event":"delivered"}
+	{"email":"webhooktest@test","timestamp":1,"pmStatsID":"%s","event":"delivered"},
+	{"email":"webhooktest@test","timestamp":2,"pmStatsID":"%s","event":"delivered"}
 	]`, id, id2))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
@@ -146,9 +154,11 @@ func TestHookHandlerDeliveredMultiple(t *T) {
 	//wait for okq to process the job
 	<-time.After(time.Second * 2)
 
-	doc := db.GetStats(id)
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.Delivered), doc.StateFlags)
 
-	doc = db.GetStats(id2)
+	doc, err = db.GetStats(id)
+	require.Nil(t, err)
 	assert.Equal(t, int64(db.Delivered), doc.StateFlags)
 }

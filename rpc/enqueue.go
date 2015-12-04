@@ -14,16 +14,11 @@ import (
 	"github.com/levenlabs/postmaster/sender"
 )
 
-// EnqueueArgs defines the arguments for the Postmaster.Enqueue endpoint
-type EnqueueArgs sender.Mail
+type enqueueArgs sender.Mail
 
-// EnqueueResult defines the response object for the Postmaster.Enqueue endpoint
-type EnqueueResult struct {
-	Success bool `json:"success"`
-}
-
-// Create is an rpc method which creates a Campaign and persists it to disk
-func (_ Postmaster) Enqueue(r *http.Request, args *EnqueueArgs, reply *EnqueueResult) error {
+// Enqueue queues an email to be sent to sendgrid it accepts an instance of
+// sender.Mail
+func (_ Postmaster) Enqueue(r *http.Request, args *enqueueArgs, reply *successResult) error {
 	kv := rpcutil.RequestKV(r)
 	// validation of email addresses is done with the validation library
 	// more advanced validation is done in validateEnqueueArgs
@@ -54,7 +49,7 @@ func (_ Postmaster) Enqueue(r *http.Request, args *EnqueueArgs, reply *EnqueueRe
 	return nil
 }
 
-func validateEnqueueArgs(args *EnqueueArgs) error {
+func validateEnqueueArgs(args *enqueueArgs) error {
 	if strings.HasSuffix(args.To, "@test") {
 		return errors.New("to address cannot end in @test.com")
 	}

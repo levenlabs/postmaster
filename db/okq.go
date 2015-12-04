@@ -16,7 +16,7 @@ import (
 var (
 	normalQueue = "email-normal"
 	statsQueue  = "stats-normal"
-	UniqueArgID = "stats_id"
+	uniqueArgID = "pmStatsID"
 )
 
 var jobCh chan job = make(chan job)
@@ -63,6 +63,7 @@ func consumeSpin(fn func(e *okq.Event) bool, q string) {
 	}(consumer)
 }
 
+// StoreSendJob creates a new Mail job with jobContents and sends it to okq
 func StoreSendJob(jobContents string) error {
 	if jobCh == nil {
 		if !sendEmail(jobContents) {
@@ -75,6 +76,7 @@ func StoreSendJob(jobContents string) error {
 	return <-respCh
 }
 
+// StoreStatsJob creates a new statsJob with jobContents and sends it to okq
 func StoreStatsJob(jobContents string) error {
 	if jobCh == nil {
 		if !storeStats(jobContents) {
@@ -103,21 +105,37 @@ func sendEmail(jobContents string) bool {
 		return false
 	}
 
-	id := GenerateEmailID(job.To, job.Flags)
+	id := GenerateEmailID(job.To, job.Flags, job.UniqueID)
 	if id != "" {
 		if job.UniqueArgs == nil {
 			job.UniqueArgs = make(map[string]string)
 		}
-		job.UniqueArgs[UniqueArgID] = id
+		job.UniqueArgs[uniqueArgID] = id
 	}
 
 	llog.Info("processing send job", llog.KV{"id": id, "recipient": job.To})
 	err = sender.Send(job)
 	if err != nil {
-		llog.Error("error calling sender.Send", llog.KV{"jobContents": jobContents, "err": err})
+		if id != "" {
+			// if we ran into an error sending the email, delete the emailID
+			rerr := removeEmailID(id)
+			if rerr != nil {
+				llog.Error("error deleting failed emailID",
+					llog.KV{"id": id, "err": err})
+			}
+		}
+
+		llog.Error("error calling sender.Send", llog.KV{"jobContents": jobContents, "id": id, "err": err})
 		return false
 	}
 	return true
+}
+
+func logMarkError(err error, kv llog.KV) {
+	if err != nil {
+		kv["error"] = err
+		llog.Error("error marking email", kv)
+	}
 }
 
 func storeStats(jobContents string) bool {
@@ -128,21 +146,40 @@ func storeStats(jobContents string) bool {
 		return false
 	}
 
-	llog.Info("processing stats job", llog.KV{"job": job})
+	kv := llog.KV{
+		"id":     job.StatsID,
+		"type":   job.Type,
+		"reason": job.Reason,
+		"email":  job.Email,
+	}
+	llog.Info("processing stats job", kv)
 	switch job.Type {
 	case "delivered":
-		MarkAsDelivered(job.StatsID)
+		err = MarkAsDelivered(job.StatsID)
+		logMarkError(err, kv)
 	case "open":
-		MarkAsOpened(job.StatsID)
+		err = MarkAsOpened(job.StatsID)
+		logMarkError(err, kv)
 	case "bounce":
-		MarkAsBounced(job.StatsID, job.Reason)
-		StoreEmailBounce(job.Email)
+		err = MarkAsBounced(job.StatsID, job.Reason)
+		logMarkError(err, kv)
+
+		err = StoreEmailBounce(job.Email)
+		if err != nil {
+			llog.Error("error storing email as bounced", kv)
+		}
 	case "spamreport":
-		MarkAsSpamReported(job.StatsID)
-		StoreEmailSpam(job.Email)
+		err = MarkAsSpamReported(job.StatsID)
+		logMarkError(err, kv)
+
+		err = StoreEmailSpam(job.Email)
+		if err != nil {
+			llog.Error("error storing email as spamed", kv)
+		}
 	case "dropped":
 		//depending on the reason we should mark the email as invalid
-		MarkAsDropped(job.StatsID, job.Reason)
+		err = MarkAsDropped(job.StatsID, job.Reason)
+		logMarkError(err, kv)
 	default:
 		llog.Warn("received unknown job type", llog.KV{"type": job.Type})
 	}

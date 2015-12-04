@@ -3,6 +3,8 @@ package db
 import (
 	"time"
 
+	"errors"
+	"fmt"
 	"github.com/levenlabs/go-llog"
 	"github.com/levenlabs/golib/rpcutil"
 	"gopkg.in/mgo.v2"
@@ -18,34 +20,72 @@ const (
 	Opened
 )
 
+var MongoDisabledErr = errors.New("mongo disabled")
+
+// A StatsJob encompasses a okq job in response to a webhook event and is used
+// to update the StatDoc for a specific email identified by StatsID
 type StatsJob struct {
-	Email     string `json:"email" validate:"email,nonzero"` //Email address of the intended recipient
-	Timestamp int64  `json:"timestamp,omitempty"`
-	Type      string `json:"event" validate:"nonzero"`    //One of: bounce, deferred, delivered, dropped, processed
-	StatsID   string `json:"stats_id" validate:"nonzero"` //json key must match db.UniqueArgID
-	Reason    string `json:"reason,omitempty" validate:"max=1024"`
+	//Email address of the intended recipient
+	Email string `json:"email" validate:"email,nonzero"`
+
+	Timestamp int64 `json:"timestamp,omitempty"`
+
+	//Type is one of: bounce, deferred, delivered, dropped, processed
+	Type string `json:"event" validate:"nonzero"`
+
+	//json flag must match db.UniqueArgID in okq.go
+	StatsID string `json:"pmStatsID" validate:"nonzero"`
+
+	// Reason is miscellaneous data for why it bounced, dropped, etc
+	Reason string `json:"reason,omitempty" validate:"max=1024"`
 }
 
+// A StatDoc represents an email that was sent
 type StatDoc struct {
-	ID         bson.ObjectId `bson:"_id,omitempty"`
-	Recipient  string        `bson:"r"`
-	EmailFlags int64         `bson:"ef"`
-	StateFlags int64         `bson:"s"`
-	TSCreated  time.Time     `bson:"tc"`
-	TSUpdated  time.Time     `bson:"ts"`
-	Error      string        `bson:"err,omitempty"`
+	// ID is a unique identifier for this doc not to be confused by the
+	// user-supplied uniqueID field
+	ID bson.ObjectId `json:"id" bson:"_id,omitempty"`
+
+	// Recipient is the email address of the recipient
+	Recipient string `json:"recipient" bson:"r"`
+
+	// EmailFlags were the originally flags sent when sending the email
+	EmailFlags int64 `json:"emailFlags" bson:"ef"`
+
+	// StateFlags
+	StateFlags int64 `json:"stateFlags" bson:"s"`
+
+	// UniqueID was the original uniqueID sent to us in rpc.Enqueue
+	UniqueID string `json:"uniqueID" bson:"uid"`
+
+	// TSCreated is the time that the email was sent
+	TSCreated time.Time `json:"tsCreated" bson:"tc"`
+
+	// TSUpdated is the last time this doc was updated
+	TSUpdated time.Time `json:"tsUpdated" bson:"ts"`
+
+	// Error is the reason for why the email errored
+	Error string `json:"error" bson:"err,omitempty"`
 }
 
 func init() {
 	rpcutil.InstallCustomValidators()
 }
 
-func GenerateEmailID(recipient string, flags int64) string {
+// GenerateEmailID generates a uniqueID and stores a record of an intended email
+// this is used in okq.go and in tests
+func GenerateEmailID(recipient string, flags int64, uid string) string {
 	if mongoDisabled {
 		return ""
 	}
 	now := time.Now()
-	doc := &StatDoc{Recipient: recipient, EmailFlags: flags, TSCreated: now, TSUpdated: now}
+	doc := &StatDoc{
+		Recipient:  recipient,
+		EmailFlags: flags,
+		UniqueID:   uid,
+		TSCreated:  now,
+		TSUpdated:  now,
+	}
 	//generate our own ObjectID since mgo doesn't do it for insert
 	doc.ID = bson.NewObjectId()
 	var err error
@@ -53,31 +93,46 @@ func GenerateEmailID(recipient string, flags int64) string {
 		err = c.Insert(doc)
 	})
 	if err != nil {
-		llog.Error("error inserting in GenerateEmailID", llog.KV{"doc": doc, "err": err})
+		llog.Error("error inserting in generateEmailID", llog.KV{"doc": doc, "err": err})
 		return ""
 	}
 	return doc.ID.Hex()
 }
 
-//this is mostly for testing purposes
-func GetStats(id string) *StatDoc {
-	if mongoDisabled {
-		return nil
-	}
-	doc := &StatDoc{}
+// removeEmailID is used to remove an emailID if an email failed to
+func removeEmailID(id string) error {
+	var err error
+	oid := bson.ObjectIdHex(id)
 	statsSH.WithColl(func(c *mgo.Collection) {
-		c.FindId(bson.ObjectIdHex(id)).One(doc)
+		err = c.RemoveId(oid)
 	})
-	return doc
+	return err
 }
 
-func markAs(id string, flag int, reason string) {
+//this is mostly for testing purposes
+func GetStats(id string) (*StatDoc, error) {
 	if mongoDisabled {
-		return
+		return nil, MongoDisabledErr
+	}
+	var err error
+	doc := &StatDoc{}
+	statsSH.WithColl(func(c *mgo.Collection) {
+		err = c.FindId(bson.ObjectIdHex(id)).One(doc)
+	})
+
+	if err != nil {
+		doc = nil
+	}
+	return doc, err
+}
+
+func markAs(id string, flag int, reason string) error {
+	if mongoDisabled {
+		return MongoDisabledErr
 	}
 	if !bson.IsObjectIdHex(id) {
 		llog.Warn("invalid id sent to markAs", llog.KV{"id": id, "flag": flag, "reason": reason})
-		return
+		return fmt.Errorf("invalid id sent to markAs: %s", id)
 	}
 
 	var set map[string]interface{}
@@ -91,27 +146,46 @@ func markAs(id string, flag int, reason string) {
 	statsSH.WithColl(func(c *mgo.Collection) {
 		err = c.UpdateId(bson.ObjectIdHex(id), update)
 	})
-	if err != nil {
-		llog.Warn("error updating in markAs", llog.KV{"err": err, "id": id, "flag": flag, "reason": reason})
+	return err
+}
+
+func MarkAsDelivered(id string) error {
+	return markAs(id, Delivered, "")
+}
+
+func MarkAsBounced(id string, reason string) error {
+	return markAs(id, Bounced, reason)
+}
+
+func MarkAsDropped(id string, reason string) error {
+	return markAs(id, Dropped, reason)
+}
+
+func MarkAsSpamReported(id string) error {
+	return markAs(id, SpamReported, "")
+}
+
+func MarkAsOpened(id string) error {
+	return markAs(id, Opened, "")
+}
+
+// GetLastUniqueID gets the last StatDoc for the given recipient and uniqueID
+func GetLastUniqueID(recipient, uid string) (*StatDoc, error) {
+	if mongoDisabled {
+		return nil, MongoDisabledErr
 	}
-}
-
-func MarkAsDelivered(id string) {
-	markAs(id, Delivered, "")
-}
-
-func MarkAsBounced(id string, reason string) {
-	markAs(id, Bounced, reason)
-}
-
-func MarkAsDropped(id string, reason string) {
-	markAs(id, Dropped, reason)
-}
-
-func MarkAsSpamReported(id string) {
-	markAs(id, SpamReported, "")
-}
-
-func MarkAsOpened(id string) {
-	markAs(id, Opened, "")
+	var err error
+	doc := &StatDoc{}
+	statsSH.WithColl(func(c *mgo.Collection) {
+		q := bson.M{
+			"uid": uid,
+			"r":   recipient,
+		}
+		// sort by the highest (newest) created times at top
+		err = c.Find(q).Sort("-tc").One(doc)
+	})
+	if err != nil {
+		doc = nil
+	}
+	return doc, err
 }

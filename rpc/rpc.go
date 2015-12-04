@@ -8,9 +8,17 @@ import (
 
 type Postmaster struct{}
 
+func init() {
+	rpcutil.InstallCustomValidators()
+}
+
 // RPC returns an http.Handler which will handle the RPC requests
 func RPC() http.Handler {
 	c := rpcutil.NewLLCodec()
 	c.ValidateInput = true
 	return rpcutil.JSONRPC2Handler(c, Postmaster{})
+}
+
+type successResult struct {
+	Success bool `json:"success"`
 }

@@ -21,6 +21,7 @@ const (
 	StatsColl = "records"
 )
 
+// EmailDoc represents a doc of the email's preferences, bounces, spams
 type EmailDoc struct {
 	Email       string      `bson:"_id"`
 	UnsubFlags  int64       `bson:"f"`
@@ -63,6 +64,10 @@ func init() {
 		Coll:    StatsColl,
 	}
 
+	statsSH.MustEnsureIndexes(
+		mgo.Index{Key: []string{"uid", "r", "tc"}, Sparse: true},
+	)
+
 	llog.Info("done setting up mongo connection", kv)
 }
 
@@ -76,6 +81,8 @@ func RandomizeColls() {
 	emailSH.Coll = fmt.Sprintf("emails-%s", testutil.RandStr())
 }
 
+// VerifyEmailAllowed verifies that we're allowed to send an email with flags to
+// recipient
 func VerifyEmailAllowed(email string, flags int64) bool {
 	if mongoDisabled {
 		//if they didn't run with mongo then they must want to approve all emails
@@ -99,6 +106,7 @@ func VerifyEmailAllowed(email string, flags int64) bool {
 	return res.UnsubFlags&flags == 0
 }
 
+// StoreEmailFlags updates the email with new flags restrictions
 func StoreEmailFlags(email string, flags int64) error {
 	if mongoDisabled {
 		return errors.New("--mongo-addr required")
@@ -111,6 +119,7 @@ func StoreEmailFlags(email string, flags int64) error {
 	return err
 }
 
+// StoreEmailBounce stores a new time when the email bounced
 func StoreEmailBounce(email string) error {
 	if mongoDisabled {
 		return errors.New("--mongo-addr required")
@@ -124,6 +133,7 @@ func StoreEmailBounce(email string) error {
 	return err
 }
 
+// StoreEmailSpam stores a new time when the email was spammed
 func StoreEmailSpam(email string) error {
 	if mongoDisabled {
 		return errors.New("--mongo-addr required")
