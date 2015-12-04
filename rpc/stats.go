@@ -7,8 +7,9 @@ import (
 )
 
 type getLastEmailArgs struct {
-	Email    string `json:"email" validate:"email,nonzero"`
-	UniqueID string `json:"uniqueID" validate:"nonzero"`
+	//this should match the validate for sender.Mail
+	To    string `json:"to" validate:"email,nonzero,max=256"`
+	UniqueID string `json:"uniqueID" validate:"nonzero,max=256"`
 }
 
 type getLastEmailResult struct {
@@ -18,7 +19,7 @@ type getLastEmailResult struct {
 // GetLastEmail gets stats for the last email sent for a specific unique ID
 // If no records were found, {"stat": null} is returned
 func (_ Postmaster) GetLastEmail(r *http.Request, args *getLastEmailArgs, reply *getLastEmailResult) error {
-	doc, err := db.GetLastUniqueID(args.Email, args.UniqueID)
+	doc, err := db.GetLastUniqueID(args.To, args.UniqueID)
 	reply.Stat = doc
 	// If it was a not found error then ignore that
 	if err == mgo.ErrNotFound {

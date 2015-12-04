@@ -100,13 +100,13 @@ Returns:
 
 ### Postmaster.GetLastEmail
 
-Get the last email sent to `email` with the `uniqueID`. You must be running with
+Get the last email sent to `to` with the `uniqueID`. You must be running with
 statistics and pass a `uniqueID` in Enqueue in order to use this functionality.
 
 Params:
 ```json
 {
-    "email": "test@test",
+    "to": "test@test",
     "uniqueID": "user_15_favorited_user_12"
 }
 ```
