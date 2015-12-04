@@ -35,7 +35,7 @@ func init() {
 
 func hookHandler(w http.ResponseWriter, r *http.Request) {
 	kv := llog.KV{"ip": r.RemoteAddr}
-	llog.Info("webhook request", kv)
+	llog.Debug("webhook request", kv)
 
 	if r.Method != "POST" {
 		kv["method"] = r.Method
@@ -65,7 +65,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, event := range events {
 		kv["event"] = event
-		llog.Info("webhook processing event", kv)
+		llog.Debug("webhook processing event", kv)
 
 		if err := validator.Validate(event); err != nil {
 			kv["err"] = err
