@@ -44,7 +44,7 @@ type StatsJob struct {
 type StatDoc struct {
 	// ID is a unique identifier for this doc not to be confused by the
 	// user-supplied uniqueID field
-	ID bson.ObjectId `json:"id" bson:"_id,omitempty"`
+	ID bson.ObjectId `json:"-" bson:"_id,omitempty"`
 
 	// Recipient is the email address of the recipient
 	Recipient string `json:"recipient" bson:"r"`
@@ -52,7 +52,7 @@ type StatDoc struct {
 	// EmailFlags were the originally flags sent when sending the email
 	EmailFlags int64 `json:"emailFlags" bson:"ef"`
 
-	// StateFlags
+	// StateFlags represent the current state of the email
 	StateFlags int64 `json:"stateFlags" bson:"s"`
 
 	// UniqueID was the original uniqueID sent to us in rpc.Enqueue
