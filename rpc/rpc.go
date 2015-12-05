@@ -19,6 +19,6 @@ func RPC() http.Handler {
 	return rpcutil.JSONRPC2Handler(c, Postmaster{})
 }
 
-type successResult struct {
+type SuccessResult struct {
 	Success bool `json:"success"`
 }

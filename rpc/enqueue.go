@@ -16,7 +16,7 @@ import (
 
 // Enqueue queues an email to be sent to sendgrid it accepts an instance of
 // sender.Mail
-func (_ Postmaster) Enqueue(r *http.Request, args *sender.Mail, reply *successResult) error {
+func (_ Postmaster) Enqueue(r *http.Request, args *sender.Mail, reply *SuccessResult) error {
 	kv := rpcutil.RequestKV(r)
 	// validation of email addresses is done with the validation library
 	// more advanced validation is done in validateEnqueueArgs
