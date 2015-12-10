@@ -8,7 +8,7 @@ import (
 
 type GetLastEmailArgs struct {
 	//this should match the validate for sender.Mail
-	To    string `json:"to" validate:"email,nonzero,max=256"`
+	To       string `json:"to" validate:"email,nonzero,max=256"`
 	UniqueID string `json:"uniqueID" validate:"nonzero,max=256"`
 }
 
