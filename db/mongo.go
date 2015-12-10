@@ -42,15 +42,7 @@ func init() {
 		return
 	}
 
-	addr := config.MongoAddr
-	kv := llog.KV{"addr": addr}
-	llog.Info("dialing mongo", kv)
-	s, err := mgo.DialWithTimeout(addr, 5*time.Second)
-	if err != nil {
-		kv["err"] = err
-		llog.Fatal("error calling mgo.DialWithInfo", kv)
-	}
-	s.SetSafe(&mgo.Safe{})
+	s := mgoutil.EnsureSession(config.MongoAddr)
 
 	emailSH = mgoutil.SessionHelper{
 		Session: s,
@@ -67,8 +59,6 @@ func init() {
 	statsSH.MustEnsureIndexes(
 		mgo.Index{Key: []string{"uid", "r", "tc"}, Sparse: true},
 	)
-
-	llog.Info("done setting up mongo connection", kv)
 }
 
 // this is ONLY exported so webhook_test can use it
