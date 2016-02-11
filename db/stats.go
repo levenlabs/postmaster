@@ -37,6 +37,9 @@ type StatsJob struct {
 	//json flag must match db.UniqueArgID in okq.go
 	StatsID string `json:"pmStatsID" validate:"nonzero"`
 
+	// this is the previous json key name before we changed it to pmStatusID
+	OldStatsID string `json:"stats_id"`
+
 	// Reason is miscellaneous data for why it bounced, dropped, etc
 	Reason string `json:"reason,omitempty" validate:"max=1024"`
 }

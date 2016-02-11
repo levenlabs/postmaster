@@ -67,6 +67,9 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		kv["event"] = event
 		llog.Debug("webhook processing event", kv)
 
+		if event.StatsID == "" && event.OldStatsID != "" {
+			event.StatsID = event.OldStatsID
+		}
 		if err := validator.Validate(event); err != nil {
 			kv["err"] = err
 			llog.Warn("webhook event failed validation", kv)
