@@ -102,8 +102,12 @@ func sendEmail(jobContents string) bool {
 	job := new(sender.Mail)
 	err := json.Unmarshal([]byte(jobContents), job)
 	if err != nil {
-		llog.Error("error json decoding into sender.Mail", llog.KV{"jobContents": jobContents, "err": err})
-		return false
+		llog.Error("error json decoding into sender.Mail", llog.KV{
+			"jobContents": jobContents,
+			"err":         err,
+		})
+		// since we cannot process this job, no reason to have it keep around
+		return true
 	}
 
 	id := GenerateEmailID(job.To, job.Flags, job.UniqueID)
@@ -143,8 +147,12 @@ func storeStats(jobContents string) bool {
 	job := new(StatsJob)
 	err := json.Unmarshal([]byte(jobContents), job)
 	if err != nil {
-		llog.Error("error json decoding into StatsJob", llog.KV{"jobContents": jobContents, "err": err})
-		return false
+		llog.Error("error json decoding into StatsJob", llog.KV{
+			"jobContents": jobContents,
+			"err":         err,
+		})
+		// since we cannot process this job, no reason to have it keep around
+		return true
 	}
 
 	kv := llog.KV{
