@@ -12,6 +12,9 @@ import (
 )
 
 func main() {
+	if config.Environment == "" {
+		llog.Fatal("--environment is required")
+	}
 	llog.SetLevelFromString(config.LogLevel)
 	llog.Info("starting postmaster")
 

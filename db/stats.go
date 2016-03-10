@@ -34,8 +34,11 @@ type StatsJob struct {
 	//Type is one of: bounce, deferred, delivered, dropped, processed
 	Type string `json:"event" validate:"nonzero"`
 
-	//json flag must match db.UniqueArgID in okq.go
+	//json flag must match db.uniqueArgStatID in okq.go
 	StatsID string `json:"pmStatsID" validate:"nonzero"`
+
+	//json flag must match db.uniqueArgEnvID in okq.go
+	SentEnvironment string `json:"pmEnvID" validate:"nonzero"`
 
 	// this is the previous json key name before we changed it to pmStatusID
 	OldStatsID string `json:"stats_id"`
@@ -62,6 +65,9 @@ type StatDoc struct {
 	// UniqueID was the original uniqueID sent to us in rpc.Enqueue
 	UniqueID string `json:"uniqueID" bson:"uid"`
 
+	// SentEnvironment was the original environment when sent
+	SentEnvironment string `json:"sentEnv" bson:"se"`
+
 	// TSCreated is the time that the email was sent
 	TSCreated timeutil.Timestamp `json:"tsCreated" bson:"tc"`
 
@@ -78,17 +84,18 @@ func init() {
 
 // GenerateEmailID generates a uniqueID and stores a record of an intended email
 // this is used in okq.go and in tests
-func GenerateEmailID(recipient string, flags int64, uid string) string {
+func GenerateEmailID(recipient string, flags int64, uid string, env string) string {
 	if mongoDisabled {
 		return ""
 	}
 	now := timeutil.TimestampNow()
 	doc := &StatDoc{
-		Recipient:  recipient,
-		EmailFlags: flags,
-		UniqueID:   uid,
-		TSCreated:  now,
-		TSUpdated:  now,
+		Recipient:       recipient,
+		EmailFlags:      flags,
+		UniqueID:        uid,
+		SentEnvironment: env,
+		TSCreated:       now,
+		TSUpdated:       now,
 	}
 	//generate our own ObjectID since mgo doesn't do it for insert
 	doc.ID = bson.NewObjectId()

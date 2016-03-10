@@ -18,7 +18,7 @@ func TestGenerateEmailID(t *T) {
 	if mongoDisabled {
 		return
 	}
-	id := GenerateEmailID("test@test", 1, "")
+	id := GenerateEmailID("test@test", 1, "", "production")
 	require.NotEmpty(t, id)
 
 	doc, err := GetStats(id)
@@ -34,7 +34,7 @@ func TestDeleteEmailID(t *T) {
 	if mongoDisabled {
 		return
 	}
-	id := GenerateEmailID("test@test", 1, "")
+	id := GenerateEmailID("test@test", 1, "", "production")
 	require.NotEmpty(t, id)
 
 	err := removeEmailID(id)
@@ -48,7 +48,7 @@ func TestMarkAs(t *T) {
 	if mongoDisabled {
 		return
 	}
-	id := GenerateEmailID("test@test", 0, "")
+	id := GenerateEmailID("test@test", 0, "", "production")
 	require.NotEmpty(t, id)
 
 	markAs(id, 9, "Test")
@@ -68,32 +68,43 @@ func TestValidation(t *T) {
 	assert.NotNil(t, validator.Validate(s))
 
 	s = &StatsJob{
-		Email:     "fake",
-		Timestamp: timeutil.TimestampNow(),
-		Type:      testutil.RandStr(),
-		StatsID:   testutil.RandStr(),
+		Email:           "fake",
+		Timestamp:       timeutil.TimestampNow(),
+		Type:            testutil.RandStr(),
+		StatsID:         testutil.RandStr(),
+		SentEnvironment: "production",
 	}
 	assert.NotNil(t, validator.Validate(s))
 
 	s = &StatsJob{
-		Email:     "fake@test",
-		Timestamp: timeutil.TimestampNow(),
-		Type:      testutil.RandStr(),
-		StatsID:   testutil.RandStr(),
+		Email:           "fake@test",
+		Timestamp:       timeutil.TimestampNow(),
+		Type:            testutil.RandStr(),
+		StatsID:         testutil.RandStr(),
+		SentEnvironment: "production",
 	}
 	assert.Nil(t, validator.Validate(s))
 
 	s = &StatsJob{
-		Email:     "fake@test",
-		Timestamp: timeutil.TimestampNow(),
-		StatsID:   testutil.RandStr(),
+		Email:           "fake@test",
+		Timestamp:       timeutil.TimestampNow(),
+		StatsID:         testutil.RandStr(),
+		SentEnvironment: "production",
+	}
+	assert.NotNil(t, validator.Validate(s))
+
+	s = &StatsJob{
+		Email:           "fake@test",
+		Timestamp:       timeutil.TimestampNow(),
+		Type:            testutil.RandStr(),
+		SentEnvironment: "production",
 	}
 	assert.NotNil(t, validator.Validate(s))
 
 	s = &StatsJob{
 		Email:     "fake@test",
 		Timestamp: timeutil.TimestampNow(),
-		Type:      testutil.RandStr(),
+		StatsID:   testutil.RandStr(),
 	}
 	assert.NotNil(t, validator.Validate(s))
 }
@@ -103,7 +114,7 @@ func TestGetLastUniqueID(t *T) {
 		return
 	}
 	email := "test@test"
-	id := GenerateEmailID(email, 1, "hey")
+	id := GenerateEmailID(email, 1, "hey", "production")
 	require.NotEmpty(t, id)
 
 	doc, err := GetLastUniqueID(email, "hey")
@@ -116,7 +127,7 @@ func TestGetLastUniqueID(t *T) {
 
 	time.Sleep(2 * time.Second)
 
-	id = GenerateEmailID(email, 1, "hey")
+	id = GenerateEmailID(email, 1, "hey", "production")
 	require.NotEmpty(t, id)
 
 	doc, err = GetLastUniqueID(email, "hey")

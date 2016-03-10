@@ -36,8 +36,8 @@ func TestHookHandlerPassword(t *T) {
 func TestHookHandlerOpen(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID(testEmail, 0, "")
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"open"}]`, id))
+	id := db.GenerateEmailID(testEmail, 0, "", "production")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"open"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -56,8 +56,8 @@ func TestHookHandlerOpen(t *T) {
 func TestHookHandlerDelivered(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID(testEmail, 0, "")
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"delivered"}]`, id))
+	id := db.GenerateEmailID(testEmail, 0, "", "production")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"delivered"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -76,8 +76,8 @@ func TestHookHandlerDelivered(t *T) {
 func TestHookHandlerDropped(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0, "")
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"dropped","reason":"Test"}]`, id))
+	id := db.GenerateEmailID("webhooktest@test.com", 0, "", "production")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"dropped","reason":"Test"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -97,8 +97,8 @@ func TestHookHandlerDropped(t *T) {
 func TestHookHandlerBounced(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID("webhooktest@test.com", 0, "")
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"bounce","reason":"Test"}]`, id))
+	id := db.GenerateEmailID("webhooktest@test.com", 0, "", "production")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"bounce","reason":"Test"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -118,8 +118,8 @@ func TestHookHandlerBounced(t *T) {
 func TestHookHandlerSpamReport(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID(testEmail, 0, "")
-	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"spamreport"}]`, id))
+	id := db.GenerateEmailID(testEmail, 0, "", "production")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"spamreport"}]`, id))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -138,11 +138,11 @@ func TestHookHandlerSpamReport(t *T) {
 func TestHookHandlerDeliveredMultiple(t *T) {
 	config.WebhookPassword = ""
 
-	id := db.GenerateEmailID(testEmail, 0, "")
-	id2 := db.GenerateEmailID(testEmail, 0, "")
+	id := db.GenerateEmailID(testEmail, 0, "", "production")
+	id2 := db.GenerateEmailID(testEmail, 0, "", "production")
 	str := []byte(fmt.Sprintf(`[
-	{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","event":"delivered"},
-	{"email":"webhooktest@test","timestamp":1449264109,"pmStatsID":"%s","event":"delivered"}
+	{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"delivered"},
+	{"email":"webhooktest@test","timestamp":1449264109,"pmStatsID":"%s","pmEnvID":"production","event":"delivered"}
 	]`, id, id2))
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
 	r.Header.Set("Content-Type", "application/json")
@@ -161,4 +161,24 @@ func TestHookHandlerDeliveredMultiple(t *T) {
 	doc, err = db.GetStats(id)
 	require.Nil(t, err)
 	assert.Equal(t, int64(db.Delivered), doc.StateFlags)
+}
+
+func TestHookHandlerDev(t *T) {
+	config.WebhookPassword = ""
+
+	id := db.GenerateEmailID(testEmail, 0, "", "dev")
+	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"dev","event":"delivered"}]`, id))
+	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	hookHandler(w, r)
+	assert.Equal(t, 200, w.Code)
+
+	//wait for okq to process the job
+	<-time.After(time.Second)
+
+	doc, err := db.GetStats(id)
+	require.Nil(t, err)
+	assert.Equal(t, int64(0), doc.StateFlags)
 }

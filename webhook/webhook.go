@@ -67,6 +67,16 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		kv["event"] = event
 		llog.Debug("webhook processing event", kv)
 
+		// assume everything pre-environment is from production
+		if event.SentEnvironment == "" {
+			event.SentEnvironment = "production"
+		}
+		if event.SentEnvironment != "production" && event.SentEnvironment != "staging" {
+			kv["env"] = event.SentEnvironment
+			llog.Info("dropping webhook from non-production and non-staging environment", kv)
+			continue
+		}
+
 		if event.StatsID == "" && event.OldStatsID != "" {
 			event.StatsID = event.OldStatsID
 		}

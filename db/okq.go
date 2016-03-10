@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	normalQueue = "email-normal"
-	statsQueue  = "stats-normal"
-	uniqueArgID = "pmStatsID"
+	normalQueue     = "email-normal"
+	statsQueue      = "stats-normal"
+	uniqueArgStatID = "pmStatsID"
+	uniqueArgEnvID  = "pmEnvID"
 )
 
 var jobCh chan job
@@ -110,12 +111,14 @@ func sendEmail(jobContents string) bool {
 		return true
 	}
 
-	id := GenerateEmailID(job.To, job.Flags, job.UniqueID)
+	env := config.Environment
+	id := GenerateEmailID(job.To, job.Flags, job.UniqueID, env)
 	if id != "" {
 		if job.UniqueArgs == nil {
 			job.UniqueArgs = make(map[string]string)
 		}
-		job.UniqueArgs[uniqueArgID] = id
+		job.UniqueArgs[uniqueArgStatID] = id
+		job.UniqueArgs[uniqueArgEnvID] = env
 	}
 
 	llog.Info("processing send job", llog.KV{"id": id, "recipient": job.To})

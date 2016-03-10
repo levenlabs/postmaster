@@ -15,6 +15,7 @@ var (
 	WebhookAddr     string
 	WebhookPassword string
 	LogLevel        string
+	Environment     string
 )
 
 func init() {
@@ -58,6 +59,11 @@ func init() {
 		Description: "Minimum log level to show, either debug, info, warn, error, or fatal",
 		Default:     "info",
 	})
+	l.Add(lever.Param{
+		Name:        "--environment",
+		Description: "Running environment. Only prod and staging webhooks are processed.",
+		Default:     "dev",
+	})
 	l.Parse()
 
 	InternalAPIAddr, _ = l.ParamStr("--internal-addr")
@@ -68,4 +74,5 @@ func init() {
 	WebhookAddr, _ = l.ParamStr("--webhook-addr")
 	WebhookPassword, _ = l.ParamStr("--webhook-pass")
 	LogLevel, _ = l.ParamStr("--log-level")
+	Environment, _ = l.ParamStr("--environment")
 }
