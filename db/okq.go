@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/levenlabs/go-llog"
+	"github.com/levenlabs/go-srvclient"
 	"github.com/levenlabs/postmaster/config"
 	"github.com/levenlabs/postmaster/sender"
 	"github.com/mediocregopher/okq-go/okq"
@@ -36,8 +37,13 @@ func init() {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	llog.Info("creating okq client", llog.KV{"okqAddr": config.OKQAddr})
-	okqClient := okq.New(config.OKQAddr)
+	addrs, err := srvclient.AllSRV(config.OKQAddr)
+	if err != nil {
+		// might just not be an srv address
+		addrs = []string{config.OKQAddr}
+	}
+	llog.Info("creating okq client", llog.KV{"okqAddrs": addrs})
+	okqClient := okq.New(addrs...)
 	// Receive jobs from StoreSendJob() and StoreStatsJob() and Push into okq
 	go func() {
 		for job := range jobCh {
