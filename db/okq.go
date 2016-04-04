@@ -23,6 +23,8 @@ var (
 
 var jobCh chan job
 
+var useOkq bool
+
 type job struct {
 	Queue    string
 	Contents string
@@ -58,6 +60,13 @@ func init() {
 	llog.Info("creating okq stats consumer", llog.KV{"okqAddr": config.OKQAddr})
 	// Receive jobs from okq and store in stats
 	consumeSpin(handleStatsEvent, statsQueue)
+
+	useOkq = true
+}
+
+// this should ONLY be called during testing
+func DisableOkq() {
+	useOkq = false
 }
 
 func consumeSpin(fn func(e *okq.Event) bool, q string) {
@@ -73,7 +82,7 @@ func consumeSpin(fn func(e *okq.Event) bool, q string) {
 
 // StoreSendJob creates a new Mail job with jobContents and sends it to okq
 func StoreSendJob(jobContents string) error {
-	if jobCh == nil {
+	if !useOkq {
 		if !sendEmail(jobContents) {
 			return errors.New("Failed to send email (bypassing okq)")
 		}
@@ -86,7 +95,7 @@ func StoreSendJob(jobContents string) error {
 
 // StoreStatsJob creates a new statsJob with jobContents and sends it to okq
 func StoreStatsJob(jobContents string) error {
-	if jobCh == nil {
+	if !useOkq {
 		if !storeStats(jobContents) {
 			return errors.New("Failed to store stats (bypassing okq)")
 		}

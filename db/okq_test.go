@@ -11,8 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	if config.OKQAddr != "" {
+		// if another package for testing disabled okq, re-enable it
+		useOkq = true
+	}
+}
+
 func TestStoreSendJob(t *T) {
-	if jobCh == nil {
+	if !useOkq {
 		return
 	}
 	// randomize the queue so the consumer that's consuming jobs doesn't pick
@@ -39,7 +46,7 @@ func TestStoreSendJob(t *T) {
 }
 
 func TestStoreStatsJob(t *T) {
-	if jobCh == nil {
+	if !useOkq {
 		return
 	}
 	// randomize the queue so the consumer that's consuming jobs doesn't pick

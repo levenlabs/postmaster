@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	. "testing"
-	"time"
 
 	"github.com/levenlabs/postmaster/config"
 	"github.com/levenlabs/postmaster/db"
@@ -16,6 +15,7 @@ import (
 
 func init() {
 	db.RandomizeColls()
+	db.DisableOkq()
 }
 
 var testEmail = "webhooktest@test"
@@ -45,9 +45,6 @@ func TestHookHandlerOpen(t *T) {
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
 
-	//wait for okq to process the job
-	<-time.After(time.Second)
-
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
 	assert.Equal(t, int64(db.Opened), doc.StateFlags)
@@ -65,9 +62,6 @@ func TestHookHandlerDelivered(t *T) {
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
 
-	//wait for okq to process the job
-	<-time.After(time.Second)
-
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
 	assert.Equal(t, int64(db.Delivered), doc.StateFlags)
@@ -84,9 +78,6 @@ func TestHookHandlerDropped(t *T) {
 
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
-
-	//wait for okq to process the job
-	<-time.After(time.Second)
 
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
@@ -106,9 +97,6 @@ func TestHookHandlerBounced(t *T) {
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
 
-	//wait for okq to process the job
-	<-time.After(time.Second)
-
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
 	assert.Equal(t, int64(db.Bounced), doc.StateFlags)
@@ -126,9 +114,6 @@ func TestHookHandlerSpamReport(t *T) {
 
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
-
-	//wait for okq to process the job
-	<-time.After(time.Second)
 
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
@@ -151,9 +136,6 @@ func TestHookHandlerDeliveredMultiple(t *T) {
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
 
-	//wait for okq to process the job
-	<-time.After(time.Second * 2)
-
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
 	assert.Equal(t, int64(db.Delivered), doc.StateFlags)
@@ -174,9 +156,6 @@ func TestHookHandlerDev(t *T) {
 
 	hookHandler(w, r)
 	assert.Equal(t, 200, w.Code)
-
-	//wait for okq to process the job
-	<-time.After(time.Second)
 
 	doc, err := db.GetStats(id)
 	require.Nil(t, err)
