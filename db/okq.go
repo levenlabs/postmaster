@@ -53,13 +53,11 @@ func init() {
 		}
 	}()
 
-	llog.Info("creating okq send consumer", llog.KV{"okqAddr": addrs})
 	// Receive jobs from okq and send to sender
-	consumeSpin(handleSendEvent, normalQueue)
+	consumeSpin(addrs, handleSendEvent, normalQueue)
 
-	llog.Info("creating okq stats consumer", llog.KV{"okqAddr": addrs})
 	// Receive jobs from okq and store in stats
-	consumeSpin(handleStatsEvent, statsQueue)
+	consumeSpin(addrs, handleStatsEvent, statsQueue)
 
 	useOkq = true
 }
@@ -69,8 +67,9 @@ func DisableOkq() {
 	useOkq = false
 }
 
-func consumeSpin(fn func(e *okq.Event) bool, q string) {
-	consumer := okq.New(config.OKQAddr)
+func consumeSpin(addrs []string, fn func(e *okq.Event) bool, q string) {
+	llog.Info("creating okq consumer", llog.KV{"okqAddrs": addrs, "queue": q})
+	consumer := okq.New(addrs...)
 	go func(c *okq.Client) {
 		for {
 			err := c.Consumer(fn, nil, q)
