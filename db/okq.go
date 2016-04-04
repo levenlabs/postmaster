@@ -53,11 +53,11 @@ func init() {
 		}
 	}()
 
-	llog.Info("creating okq send consumer", llog.KV{"okqAddr": config.OKQAddr})
+	llog.Info("creating okq send consumer", llog.KV{"okqAddr": addrs})
 	// Receive jobs from okq and send to sender
 	consumeSpin(handleSendEvent, normalQueue)
 
-	llog.Info("creating okq stats consumer", llog.KV{"okqAddr": config.OKQAddr})
+	llog.Info("creating okq stats consumer", llog.KV{"okqAddr": addrs})
 	// Receive jobs from okq and store in stats
 	consumeSpin(handleStatsEvent, statsQueue)
 
