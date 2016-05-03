@@ -11,7 +11,7 @@ type UpdatePrefsArgs struct {
 }
 
 // UpdatePrefs updates an email addresses email preferences
-func (_ Postmaster) UpdatePrefs(r *http.Request, args *UpdatePrefsArgs, reply *SuccessResult) error {
+func (Postmaster) UpdatePrefs(r *http.Request, args *UpdatePrefsArgs, reply *SuccessResult) error {
 	if err := db.StoreEmailFlags(args.Email, args.Flags); err != nil {
 		return err
 	}
