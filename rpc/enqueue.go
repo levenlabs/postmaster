@@ -18,6 +18,9 @@ import (
 // sender.Mail
 func (Postmaster) Enqueue(r *http.Request, args *sender.Mail, reply *SuccessResult) error {
 	kv := rpcutil.RequestKV(r)
+	kv["to"] = args.To
+	kv["flags"] = args.Flags
+	kv["subject"] = args.Subject
 	// validation of email addresses is done with the validation library
 	// more advanced validation is done in validateEnqueueArgs
 	if err := validateEnqueueArgs(args); err != nil {
@@ -39,6 +42,9 @@ func (Postmaster) Enqueue(r *http.Request, args *sender.Mail, reply *SuccessResu
 	if err != nil {
 		return err
 	}
+
+	llog.Info("storing new email job", kv)
+
 	err = db.StoreSendJob(string(contents))
 	if err != nil {
 		return err
