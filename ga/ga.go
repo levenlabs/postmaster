@@ -14,10 +14,13 @@ var (
 
 // GA is an instance of the GenAPI for this rpc service
 var GA = genapi.GenAPI{
-	Name:    "postmaster",
-	OkqInfo: &genapi.OkqInfo{},
+	Name: "postmaster",
+	OkqInfo: &genapi.OkqInfo{
+		Optional: true,
+	},
 	MongoInfo: &genapi.MongoInfo{
-		DBName: "postmaster",
+		DBName:   "postmaster",
+		Optional: true,
 	},
 	LeverParams: []lever.Param{
 		{
