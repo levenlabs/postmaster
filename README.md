@@ -20,6 +20,14 @@ chance to process a webhook or an email, or to run multiple instances of
 postmaster, an instance of [okq](https://github.com/mc0/okq) can be run and
 passed as `--okq-addr`. All jobs will be held in okq until they are processed.
 
+## Version
+
+The running postmaster with `--version` prints the version number. This is only
+supported in releases unless you set the version when compiling:
+```
+go build -ldflags "-X github.com/levenlabs/golib/genapi.Version 'myversion'" ./...
+```
+
 ## Webhook
 
 The webhook port can be specified via `--webhook-addr`. In

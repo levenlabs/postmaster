@@ -4,8 +4,9 @@ package sender
 import (
 	"fmt"
 	"github.com/levenlabs/go-llog"
+	"github.com/levenlabs/golib/genapi"
 	"github.com/levenlabs/golib/rpcutil"
-	"github.com/levenlabs/postmaster/config"
+	"github.com/levenlabs/postmaster/ga"
 	"github.com/sendgrid/sendgrid-go"
 	"gopkg.in/validator.v2"
 	"reflect"
@@ -56,13 +57,16 @@ type Mail struct {
 }
 
 func init() {
-	if config.SendGridAPIKey == "" {
-		llog.Fatal("--sendgrid-key not set")
-	}
-	client = sendgrid.NewSendGridClientWithApiKey(config.SendGridAPIKey)
+	ga.GA.AppendInit(func(g *genapi.GenAPI) {
+		key, _ := g.ParamStr("--sendgrid-key")
+		if key == "" {
+			llog.Fatal("--sendgrid-key not set")
+		}
+		client = sendgrid.NewSendGridClientWithApiKey(key)
 
-	rpcutil.InstallCustomValidators()
-	validator.SetValidationFunc("argsMap", validateArgsMap)
+		rpcutil.InstallCustomValidators()
+		validator.SetValidationFunc("argsMap", validateArgsMap)
+	})
 }
 
 // Send takes a Mail struct and sends it to sendgrid

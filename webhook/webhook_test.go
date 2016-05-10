@@ -7,21 +7,21 @@ import (
 	"net/http/httptest"
 	. "testing"
 
-	"github.com/levenlabs/postmaster/config"
 	"github.com/levenlabs/postmaster/db"
+	"github.com/levenlabs/postmaster/ga"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func init() {
-	db.RandomizeColls()
+	ga.GA.TestMode()
 	db.DisableOkq()
 }
 
 var testEmail = "webhooktest@test"
 
 func TestHookHandlerPassword(t *T) {
-	config.WebhookPassword = "test"
+	webhookPassword = "test"
 
 	str := []byte(`[{"email":"webhooktest@test","timestamp":1,"event":"test","pmStatsID":"s"}]`)
 	r, _ := http.NewRequest("POST", "/", bytes.NewBuffer(str))
@@ -34,7 +34,7 @@ func TestHookHandlerPassword(t *T) {
 }
 
 func TestHookHandlerOpen(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID(testEmail, 0, "", "production")
 	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"open"}]`, id))
@@ -51,7 +51,7 @@ func TestHookHandlerOpen(t *T) {
 }
 
 func TestHookHandlerDelivered(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID(testEmail, 0, "", "production")
 	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"delivered"}]`, id))
@@ -68,7 +68,7 @@ func TestHookHandlerDelivered(t *T) {
 }
 
 func TestHookHandlerDropped(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID("webhooktest@test.com", 0, "", "production")
 	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"dropped","reason":"Test"}]`, id))
@@ -86,7 +86,7 @@ func TestHookHandlerDropped(t *T) {
 }
 
 func TestHookHandlerBounced(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID("webhooktest@test.com", 0, "", "production")
 	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"bounce","reason":"Test"}]`, id))
@@ -104,7 +104,7 @@ func TestHookHandlerBounced(t *T) {
 }
 
 func TestHookHandlerSpamReport(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID(testEmail, 0, "", "production")
 	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"production","event":"spamreport"}]`, id))
@@ -121,7 +121,7 @@ func TestHookHandlerSpamReport(t *T) {
 }
 
 func TestHookHandlerDeliveredMultiple(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID(testEmail, 0, "", "production")
 	id2 := db.GenerateEmailID(testEmail, 0, "", "production")
@@ -146,7 +146,7 @@ func TestHookHandlerDeliveredMultiple(t *T) {
 }
 
 func TestHookHandlerDev(t *T) {
-	config.WebhookPassword = ""
+	webhookPassword = ""
 
 	id := db.GenerateEmailID(testEmail, 0, "", "dev")
 	str := []byte(fmt.Sprintf(`[{"email":"webhooktest@test","timestamp":1449264108,"pmStatsID":"%s","pmEnvID":"dev","event":"delivered"}]`, id))

@@ -4,14 +4,13 @@ package db
 import (
 	"encoding/json"
 	"errors"
-	"math/rand"
 	"time"
 
 	"github.com/levenlabs/go-llog"
-	"github.com/levenlabs/go-srvclient"
-	"github.com/levenlabs/postmaster/config"
+	"github.com/levenlabs/golib/genapi"
+	"github.com/levenlabs/postmaster/ga"
 	"github.com/levenlabs/postmaster/sender"
-	"github.com/mediocregopher/okq-go/okq"
+	"github.com/mediocregopher/okq-go.v2"
 )
 
 var (
@@ -32,44 +31,39 @@ type job struct {
 }
 
 func init() {
-	if config.OKQAddr == "" {
-		return
-	}
-	jobCh = make(chan job)
-
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	addrs, err := srvclient.AllSRV(config.OKQAddr)
-	if err != nil {
-		// might just not be an srv address
-		addrs = []string{config.OKQAddr}
-	}
-	llog.Info("creating okq client", llog.KV{"okqAddrs": addrs})
-	okqClient := okq.New(addrs...)
-	// Receive jobs from StoreSendJob() and StoreStatsJob() and Push into okq
-	go func() {
-		for job := range jobCh {
-			job.RespCh <- okqClient.Push(job.Queue, job.Contents, okq.Normal)
+	ga.GA.AppendInit(func(g *genapi.GenAPI) {
+		if ga.GA.OkqInfo.Client == nil {
+			return
 		}
-	}()
+		jobCh = make(chan job)
 
-	// Receive jobs from okq and send to sender
-	consumeSpin(addrs, handleSendEvent, normalQueue)
+		okqClient := ga.GA.OkqInfo.Client
+		// Receive jobs from StoreSendJob() and StoreStatsJob() and Push into okq
+		go func() {
+			for job := range jobCh {
+				job.RespCh <- okqClient.Push(job.Queue, job.Contents, okq.Normal)
+			}
+		}()
 
-	// Receive jobs from okq and store in stats
-	consumeSpin(addrs, handleStatsEvent, statsQueue)
+		// Receive jobs from okq and send to sender
+		consumeSpin(handleSendEvent, normalQueue)
 
-	useOkq = true
+		// Receive jobs from okq and store in stats
+		consumeSpin(handleStatsEvent, statsQueue)
+
+		useOkq = true
+	})
 }
 
+// DisableOkq turns off using okq for job storing
 // this should ONLY be called during testing
 func DisableOkq() {
 	useOkq = false
 }
 
-func consumeSpin(addrs []string, fn func(e *okq.Event) bool, q string) {
-	llog.Info("creating okq consumer", llog.KV{"okqAddrs": addrs, "queue": q})
-	consumer := okq.New(addrs...)
+func consumeSpin(fn okq.ConsumerFunc, q string) {
+	llog.Info("creating okq consumer", llog.KV{"queue": q})
+	consumer := ga.GA.OkqInfo.Client
 	go func(c *okq.Client) {
 		for {
 			err := c.Consumer(fn, nil, q)
@@ -105,11 +99,11 @@ func StoreStatsJob(jobContents string) error {
 	return <-respCh
 }
 
-func handleSendEvent(e *okq.Event) bool {
+func handleSendEvent(e okq.Event) bool {
 	return sendEmail(e.Contents)
 }
 
-func handleStatsEvent(e *okq.Event) bool {
+func handleStatsEvent(e okq.Event) bool {
 	return storeStats(e.Contents)
 }
 
@@ -125,7 +119,7 @@ func sendEmail(jobContents string) bool {
 		return true
 	}
 
-	env := config.Environment
+	env := ga.Environment
 	id := GenerateEmailID(job.To, job.Flags, job.UniqueID, env)
 	if id != "" {
 		if job.UniqueArgs == nil {

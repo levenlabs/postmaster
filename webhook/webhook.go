@@ -6,31 +6,39 @@ import (
 	"time"
 
 	"github.com/levenlabs/go-llog"
-
-	"github.com/levenlabs/postmaster/config"
+	"github.com/levenlabs/golib/genapi"
 	"github.com/levenlabs/postmaster/db"
+	"github.com/levenlabs/postmaster/ga"
 	"gopkg.in/validator.v2"
 )
 
+var webhookPassword string
+
+// WebhookEvent is just a wrapper around db.StatsJob for now
+// it holds a representation of an incoming webhook event
 type WebhookEvent db.StatsJob
 
 func init() {
-	if config.WebhookAddr == "" {
-		return
-	}
-
-	go func() {
-		s := &http.Server{
-			Addr:           config.WebhookAddr,
-			Handler:        http.HandlerFunc(hookHandler),
-			ReadTimeout:    10 * time.Second,
-			WriteTimeout:   10 * time.Second,
-			MaxHeaderBytes: 1 << 20,
+	ga.GA.AppendInit(func(g *genapi.GenAPI) {
+		addr, _ := g.ParamStr("--webhook-addr")
+		if addr == "" {
+			return
 		}
-		llog.Info("listening for webhook", llog.KV{"addr": config.WebhookAddr})
-		err := s.ListenAndServe()
-		llog.Fatal("error listening for webhoook", llog.KV{"addr": config.WebhookAddr, "err": err})
-	}()
+		webhookPassword, _ = g.ParamStr("--webhook-pass")
+
+		go func() {
+			s := &http.Server{
+				Addr:           addr,
+				Handler:        http.HandlerFunc(hookHandler),
+				ReadTimeout:    10 * time.Second,
+				WriteTimeout:   10 * time.Second,
+				MaxHeaderBytes: 1 << 20,
+			}
+			llog.Info("listening for webhook", llog.KV{"addr": addr})
+			err := s.ListenAndServe()
+			llog.Fatal("error listening for webhoook", llog.KV{"addr": addr, "err": err})
+		}()
+	})
 }
 
 func hookHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +52,9 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if config.WebhookPassword != "" {
+	if webhookPassword != "" {
 		_, password, authOk := r.BasicAuth()
-		if !authOk || password != config.WebhookPassword {
+		if !authOk || password != webhookPassword {
 			llog.Warn("webhook authorization failed", kv)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return

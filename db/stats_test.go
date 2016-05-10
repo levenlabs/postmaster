@@ -10,14 +10,8 @@ import (
 	"time"
 )
 
-func init() {
-	RandomizeColls()
-}
-
 func TestGenerateEmailID(t *T) {
-	if mongoDisabled {
-		return
-	}
+	require.False(t, mongoDisabled)
 	id := GenerateEmailID("test@test", 1, "", "production")
 	require.NotEmpty(t, id)
 
@@ -31,9 +25,7 @@ func TestGenerateEmailID(t *T) {
 }
 
 func TestDeleteEmailID(t *T) {
-	if mongoDisabled {
-		return
-	}
+	require.False(t, mongoDisabled)
 	id := GenerateEmailID("test@test", 1, "", "production")
 	require.NotEmpty(t, id)
 
@@ -45,9 +37,7 @@ func TestDeleteEmailID(t *T) {
 }
 
 func TestMarkAs(t *T) {
-	if mongoDisabled {
-		return
-	}
+	require.False(t, mongoDisabled)
 	id := GenerateEmailID("test@test", 0, "", "production")
 	require.NotEmpty(t, id)
 
@@ -61,9 +51,7 @@ func TestMarkAs(t *T) {
 }
 
 func TestValidation(t *T) {
-	if mongoDisabled {
-		return
-	}
+	require.False(t, mongoDisabled)
 	s := &StatsJob{}
 	assert.NotNil(t, validator.Validate(s))
 
@@ -110,9 +98,7 @@ func TestValidation(t *T) {
 }
 
 func TestGetLastUniqueID(t *T) {
-	if mongoDisabled {
-		return
-	}
+	require.False(t, mongoDisabled)
 	email := "test@test"
 	id := GenerateEmailID(email, 1, "hey", "production")
 	require.NotEmpty(t, id)

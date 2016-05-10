@@ -3,7 +3,6 @@ package db
 import (
 	"time"
 
-	"errors"
 	"fmt"
 	"github.com/levenlabs/go-llog"
 	"github.com/levenlabs/golib/rpcutil"
@@ -20,8 +19,6 @@ const (
 	Dropped
 	Opened
 )
-
-var MongoDisabledErr = errors.New("mongo disabled")
 
 // A StatsJob encompasses a okq job in response to a webhook event and is used
 // to update the StatDoc for a specific email identified by StatsID

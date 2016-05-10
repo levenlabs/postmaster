@@ -2,23 +2,18 @@
 package rpc
 
 import (
-	"github.com/levenlabs/golib/rpcutil"
-	"net/http"
+	"github.com/levenlabs/postmaster/ga"
 )
 
+// Postmaster is just a holder for the RPC methods
 type Postmaster struct{}
 
 func init() {
-	rpcutil.InstallCustomValidators()
+	ga.GA.Services = append(ga.GA.Services, Postmaster{})
 }
 
-// RPC returns an http.Handler which will handle the RPC requests
-func RPC() http.Handler {
-	c := rpcutil.NewLLCodec()
-	c.ValidateInput = true
-	return rpcutil.JSONRPC2Handler(c, Postmaster{})
-}
-
+// SuccessResult holds just a Success bool and is used for methods that don't
+// need to return anything
 type SuccessResult struct {
 	Success bool `json:"success"`
 }

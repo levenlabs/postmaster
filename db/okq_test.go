@@ -3,25 +3,24 @@ package db
 import (
 	"fmt"
 	. "testing"
+	"time"
 
 	"github.com/levenlabs/golib/testutil"
-	"github.com/levenlabs/postmaster/config"
+	"github.com/levenlabs/postmaster/ga"
 	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var okqAddr string
+
 func init() {
-	if config.OKQAddr != "" {
-		// if another package for testing disabled okq, re-enable it
-		useOkq = true
-	}
+	useOkq = true
+	okqAddr, _ = ga.GA.ParamStr("--okq-addr")
 }
 
 func TestStoreSendJob(t *T) {
-	if !useOkq {
-		return
-	}
+	require.True(t, useOkq)
 	// randomize the queue so the consumer that's consuming jobs doesn't pick
 	// up our job and try to process it
 	existingQueue := normalQueue
@@ -33,7 +32,7 @@ func TestStoreSendJob(t *T) {
 	err := StoreSendJob("hello")
 	require.Nil(t, err)
 
-	r, err := redis.Dial("tcp", config.OKQAddr)
+	r, err := redis.DialTimeout("tcp", okqAddr, 5*time.Second)
 	require.Nil(t, err)
 	res, err := r.Cmd("QRPOP", normalQueue, "EX", 0).Array()
 	require.Nil(t, err)
@@ -46,9 +45,7 @@ func TestStoreSendJob(t *T) {
 }
 
 func TestStoreStatsJob(t *T) {
-	if !useOkq {
-		return
-	}
+	require.True(t, useOkq)
 	// randomize the queue so the consumer that's consuming jobs doesn't pick
 	// up our job and try to process it
 	existingQueue := statsQueue
@@ -60,7 +57,7 @@ func TestStoreStatsJob(t *T) {
 	err := StoreStatsJob("hello2")
 	require.Nil(t, err)
 
-	r, err := redis.Dial("tcp", config.OKQAddr)
+	r, err := redis.DialTimeout("tcp", okqAddr, 5*time.Second)
 	require.Nil(t, err)
 	res, err := r.Cmd("QRPOP", statsQueue, "EX", 0).Array()
 	require.Nil(t, err)
