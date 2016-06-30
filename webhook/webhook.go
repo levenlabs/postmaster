@@ -80,8 +80,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 			event.SentEnvironment = "production"
 		}
 		if event.SentEnvironment != "production" && event.SentEnvironment != "staging" {
-			kv["env"] = event.SentEnvironment
-			llog.Info("dropping webhook from non-production and non-staging environment", kv)
+			llog.Info("dropping webhook from non-production and non-staging environment", kv.Set("env", event.SentEnvironment))
 			continue
 		}
 
@@ -89,22 +88,19 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 			event.StatsID = event.OldStatsID
 		}
 		if err := validator.Validate(event); err != nil {
-			kv["err"] = err
-			llog.Warn("webhook event failed validation", kv)
-			return
+			llog.Warn("webhook event failed validation", kv.Set("err", err))
+			continue
 		}
 
 		contents, err := json.Marshal(event)
 		if err != nil {
-			kv["err"] = err
-			llog.Error("webhook couldn't marshal event", kv)
-			delete(kv, "err")
+			llog.Error("webhook couldn't marshal event", kv.Set("err", err))
 			continue
 		}
 		if err = db.StoreStatsJob(string(contents)); err != nil {
-			kv["err"] = err
-			llog.Error("webhook couldn't store stats job", kv)
-			delete(kv, "err")
+			llog.Error("webhook couldn't store stats job", kv.Set("err", err))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 	}
 }
