@@ -2,18 +2,22 @@
 package sender
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"reflect"
+
 	"github.com/levenlabs/go-llog"
 	"github.com/levenlabs/golib/genapi"
 	"github.com/levenlabs/golib/rpcutil"
 	"github.com/levenlabs/postmaster/ga"
 	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"gopkg.in/validator.v2"
-	"reflect"
 )
 
 var (
-	client *sendgrid.SGClient
+	sgKey string
 )
 
 // Mail encompasses an email that is intended to be sent
@@ -40,7 +44,7 @@ type Mail struct {
 	Text string `json:"text,omitempty" validate:"max=2097152"` //2MB
 
 	// ReplyTo is the Reply-To email address for the email
-	ReplyTo string `json:"replyTo,omitempty" validate:"max=256"`
+	ReplyTo string `json:"replyTo,omitempty" validate:"email,max=256"`
 
 	// UniqueArgs are the SMTP unique arguments passed onto sendgrid
 	// Note: pmStatsID is a reserved key and is used for stats recording
@@ -62,7 +66,7 @@ func init() {
 		if key == "" {
 			llog.Fatal("--sendgrid-key not set")
 		}
-		client = sendgrid.NewSendGridClientWithApiKey(key)
+		sgKey = key
 
 		rpcutil.InstallCustomValidators()
 		validator.SetValidationFunc("argsMap", validateArgsMap)
@@ -71,29 +75,42 @@ func init() {
 
 // Send takes a Mail struct and sends it to sendgrid
 func Send(job *Mail) error {
-	msg := sendgrid.NewMail()
-	msg.AddTo(job.To)
-	if job.ToName != "" {
-		msg.AddToName(job.ToName)
+	msg := mail.NewV3Mail()
+	msg.SetFrom(mail.NewEmail(job.FromName, job.From))
+	if job.ReplyTo != "" {
+		msg.SetReplyTo(mail.NewEmail("", job.ReplyTo))
 	}
-	msg.SetFrom(job.From)
-	if job.FromName != "" {
-		msg.SetFromName(job.FromName)
-	}
-	msg.SetSubject(job.Subject)
+
+	p := mail.NewPersonalization()
+	p.AddTos(mail.NewEmail(job.ToName, job.To))
+	msg.AddPersonalizations(p)
+
+	msg.Subject = job.Subject
+	contents := []*mail.Content{}
 	if job.HTML != "" {
-		msg.SetHTML(job.HTML)
+		contents = append(contents, mail.NewContent("text/html", job.HTML))
 	}
 	if job.Text != "" {
-		msg.SetText(job.Text)
+		contents = append(contents, mail.NewContent("text/plain", job.Text))
 	}
-	if job.ReplyTo != "" {
-		msg.SetReplyTo(job.ReplyTo)
-	}
+	msg.AddContent(contents...)
+
 	if job.UniqueArgs != nil && len(job.UniqueArgs) > 0 {
-		msg.SMTPAPIHeader.SetUniqueArgs(job.UniqueArgs)
+		for k, v := range job.UniqueArgs {
+			msg.SetCustomArg(k, v)
+		}
 	}
-	return client.Send(msg)
+	req := sendgrid.GetRequest(sgKey, "/v3/mail/send", "https://api.sendgrid.com")
+	req.Method = "POST"
+	req.Body = mail.GetRequestBody(msg)
+	resp, err := sendgrid.API(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		return errors.New(resp.Body)
+	}
+	return nil
 }
 
 // validateArgsMap maps over the args map and validates each key and value in
