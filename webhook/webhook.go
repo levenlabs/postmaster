@@ -36,7 +36,7 @@ func init() {
 			}
 			llog.Info("listening for webhook", llog.KV{"addr": addr})
 			err := s.ListenAndServe()
-			llog.Fatal("error listening for webhoook", llog.KV{"addr": addr, "err": err})
+			llog.Fatal("error listening for webhoook", llog.KV{"addr": addr}, llog.ErrKV(err))
 		}()
 	})
 }
@@ -65,8 +65,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	var events []WebhookEvent
 	err := decoder.Decode(&events)
 	if err != nil || len(events) == 0 {
-		kv["err"] = err
-		llog.Warn("webhook failed to parse body", kv)
+		llog.Warn("webhook failed to parse body", kv, llog.ErrKV(err))
 		http.Error(w, "Invalid POST Body", http.StatusBadRequest)
 		return
 	}
@@ -88,17 +87,17 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 			event.StatsID = event.OldStatsID
 		}
 		if err := validator.Validate(event); err != nil {
-			llog.Warn("webhook event failed validation", kv.Set("err", err))
+			llog.Warn("webhook event failed validation", kv, llog.ErrKV(err))
 			continue
 		}
 
 		contents, err := json.Marshal(event)
 		if err != nil {
-			llog.Error("webhook couldn't marshal event", kv.Set("err", err))
+			llog.Error("webhook couldn't marshal event", kv, llog.ErrKV(err))
 			continue
 		}
 		if err = db.StoreStatsJob(string(contents)); err != nil {
-			llog.Error("webhook couldn't store stats job", kv.Set("err", err))
+			llog.Error("webhook couldn't store stats job", kv, llog.ErrKV(err))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

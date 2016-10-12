@@ -66,8 +66,8 @@ func consumeSpin(fn okq.ConsumerFunc, q string) {
 	consumer := ga.GA.OkqInfo.Client
 	go func(c *okq.Client) {
 		for {
-			err := c.Consumer(fn, nil, q)
-			llog.Error("consumer error", llog.KV{"err": err, "queue": q})
+			err := <-c.Consumer(fn, nil, q)
+			llog.Error("consumer error", llog.KV{"queue": q}, llog.ErrKV(err))
 			time.Sleep(10 * time.Second)
 		}
 	}(consumer)
@@ -113,8 +113,7 @@ func sendEmail(jobContents string) bool {
 	if err != nil {
 		llog.Error("error json decoding into sender.Mail", llog.KV{
 			"jobContents": jobContents,
-			"err":         err,
-		})
+		}, llog.ErrKV(err))
 		// since we cannot process this job, no reason to have it keep around
 		return true
 	}
@@ -136,12 +135,11 @@ func sendEmail(jobContents string) bool {
 			// if we ran into an error sending the email, delete the emailID
 			rerr := removeEmailID(id)
 			if rerr != nil {
-				llog.Error("error deleting failed emailID",
-					llog.KV{"id": id, "err": err})
+				llog.Error("error deleting failed emailID", llog.KV{"id": id}, llog.ErrKV(err))
 			}
 		}
 
-		llog.Error("error calling sender.Send", llog.KV{"jobContents": jobContents, "id": id, "err": err})
+		llog.Error("error calling sender.Send", llog.KV{"jobContents": jobContents, "id": id}, llog.ErrKV(err))
 		return false
 	}
 	return true
@@ -149,8 +147,7 @@ func sendEmail(jobContents string) bool {
 
 func logMarkError(err error, kv llog.KV) {
 	if err != nil {
-		kv["error"] = err
-		llog.Error("error marking email", kv)
+		llog.Error("error marking email", kv, llog.ErrKV(err))
 	}
 }
 
@@ -186,7 +183,7 @@ func storeStats(jobContents string) bool {
 
 		err = StoreEmailBounce(job.Email)
 		if err != nil {
-			llog.Error("error storing email as bounced", kv)
+			llog.Error("error storing email as bounced", kv, llog.ErrKV(err))
 		}
 	case "spamreport":
 		err = MarkAsSpamReported(job.StatsID)
@@ -194,7 +191,7 @@ func storeStats(jobContents string) bool {
 
 		err = StoreEmailSpam(job.Email)
 		if err != nil {
-			llog.Error("error storing email as spamed", kv)
+			llog.Error("error storing email as spamed", kv, llog.ErrKV(err))
 		}
 	case "dropped":
 		//depending on the reason we should mark the email as invalid

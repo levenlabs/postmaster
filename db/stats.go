@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"fmt"
+
 	"github.com/levenlabs/go-llog"
 	"github.com/levenlabs/golib/rpcutil"
 	"github.com/levenlabs/golib/timeutil"
@@ -101,7 +102,7 @@ func GenerateEmailID(recipient string, flags int64, uid string, env string) stri
 		err = c.Insert(doc)
 	})
 	if err != nil {
-		llog.Error("error inserting in generateEmailID", llog.KV{"doc": doc, "err": err})
+		llog.Error("error inserting in generateEmailID", llog.KV{"doc": doc}, llog.ErrKV(err))
 		return ""
 	}
 	return doc.ID.Hex()
