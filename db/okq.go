@@ -2,6 +2,7 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -99,11 +100,11 @@ func StoreStatsJob(jobContents string) error {
 	return <-respCh
 }
 
-func handleSendEvent(e okq.Event) bool {
+func handleSendEvent(_ context.Context, e okq.Event) bool {
 	return sendEmail(e.Contents)
 }
 
-func handleStatsEvent(e okq.Event) bool {
+func handleStatsEvent(_ context.Context, e okq.Event) bool {
 	return storeStats(e.Contents)
 }
 
