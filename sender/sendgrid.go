@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	sgKey string
+	sgKey  string
+	sgPool string
 )
 
 // Mail encompasses an email that is intended to be sent
@@ -67,6 +68,7 @@ func init() {
 			llog.Fatal("--sendgrid-key not set")
 		}
 		sgKey = key
+		sgPool, _ = g.ParamStr("--sendgrid-ip-pool")
 
 		rpcutil.InstallCustomValidators()
 		validator.SetValidationFunc("argsMap", validateArgsMap)
@@ -99,6 +101,9 @@ func Send(job *Mail) error {
 		for k, v := range job.UniqueArgs {
 			msg.SetCustomArg(k, v)
 		}
+	}
+	if sgPool != "" {
+		msg.SetIPPoolID(sgPool)
 	}
 	req := sendgrid.GetRequest(sgKey, "/v3/mail/send", "https://api.sendgrid.com")
 	req.Method = "POST"

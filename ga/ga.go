@@ -28,6 +28,11 @@ var GA = genapi.GenAPI{
 			Description: "Sendgrid API Key",
 		},
 		{
+			Name:        "--sendgrid-ip-pool",
+			Description: "Specify a SendGrid IP pool for all emails to come from",
+			Default:     "",
+		},
+		{
 			Name:        "--webhook-addr",
 			Description: "Address to listen for webhooks from sendgrid on",
 			Default:     "127.0.0.1:8993",
