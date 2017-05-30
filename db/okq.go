@@ -2,6 +2,7 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -66,7 +67,7 @@ func consumeSpin(fn okq.ConsumerFunc, q string) {
 	consumer := ga.GA.OkqInfo.Client
 	go func(c *okq.Client) {
 		for {
-			err := <-c.Consumer(fn, nil, q)
+			err := <-c.Consumer(context.Background(), fn, q)
 			llog.Error("consumer error", llog.KV{"queue": q}, llog.ErrKV(err))
 			time.Sleep(10 * time.Second)
 		}
@@ -99,11 +100,11 @@ func StoreStatsJob(jobContents string) error {
 	return <-respCh
 }
 
-func handleSendEvent(e okq.Event) bool {
+func handleSendEvent(_ context.Context, e okq.Event) bool {
 	return sendEmail(e.Contents)
 }
 
-func handleStatsEvent(e okq.Event) bool {
+func handleStatsEvent(_ context.Context, e okq.Event) bool {
 	return storeStats(e.Contents)
 }
 
