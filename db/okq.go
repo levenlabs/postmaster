@@ -67,7 +67,7 @@ func consumeSpin(fn okq.ConsumerFunc, q string) {
 	consumer := ga.GA.OkqInfo.Client
 	go func(c *okq.Client) {
 		for {
-			err := <-c.Consumer(fn, nil, q)
+			err := <-c.Consumer(context.Background(), fn, q)
 			llog.Error("consumer error", llog.KV{"queue": q}, llog.ErrKV(err))
 			time.Sleep(10 * time.Second)
 		}
