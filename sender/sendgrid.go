@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/levenlabs/go-llog"
 	"github.com/levenlabs/golib/genapi"
 	"github.com/levenlabs/golib/rpcutil"
 	"github.com/levenlabs/postmaster/ga"
-	"github.com/sendgrid/sendgrid-go"
+	sendgrid "github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"gopkg.in/validator.v2"
 )
@@ -84,7 +85,10 @@ func Send(job *Mail) error {
 	}
 
 	p := mail.NewPersonalization()
-	p.AddTos(mail.NewEmail(job.ToName, job.To))
+	// make sure the To doesn't have any <> in it since this breaks sendgrid
+	tn := strings.Replace(job.ToName, "<", "", -1)
+	tn = strings.Replace(tn, ">", "", -1)
+	p.AddTos(mail.NewEmail(tn, job.To))
 	msg.AddPersonalizations(p)
 
 	msg.Subject = job.Subject
