@@ -112,3 +112,48 @@ func StoreEmailSpam(email string) error {
 	})
 	return err
 }
+
+// MoveEmailPrefs and email's prefs to a new address
+func MoveEmailPrefs(oldEmail, newEmail string) error {
+	if mongoDisabled {
+		return MongoDisabledErr
+	}
+	n := time.Now()
+	var err error
+	emailSH.WithColl(func(c *mgo.Collection) {
+		var doc, doc2 EmailDoc
+		if err = c.FindId(oldEmail).One(&doc); err != nil {
+			// If err is notFound, nothing to move
+			if err == mgo.ErrNotFound {
+				err = nil
+			}
+			return
+		}
+		doc2.Email = newEmail
+		doc2.TSUpdated = n
+		doc2.UnsubFlags = doc.UnsubFlags
+		err = c.Insert(doc2)
+	})
+	return err
+}
+
+// GetEmailFlags returns the unsub flags of an email address
+func GetEmailFlags(email string) (int64, error) {
+	if mongoDisabled {
+		return 0, MongoDisabledErr
+	}
+	var err error
+	flags := int64(1)
+	emailSH.WithColl(func(c *mgo.Collection) {
+		var doc EmailDoc
+		if err = c.FindId(email).One(&doc); err != nil {
+			if err == mgo.ErrNotFound {
+				// If not found, they're not unsubbed to anything
+				err = nil
+			}
+			return
+		}
+		flags = doc.UnsubFlags
+	})
+	return flags, err
+}
