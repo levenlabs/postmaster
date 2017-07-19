@@ -106,6 +106,47 @@ Returns:
 }
 ```
 
+### Postmaster.MovePrefs
+
+Move the flags stored for an email address on a new email address.
+Useful when a user has changed their email address.
+
+Params:
+```json
+{
+    "oldEmail": "test@test.com",
+    "newEmail": "test2@test.com"
+}
+```
+
+Returns:
+```json
+{
+    "success": true
+}
+```
+
+### Postmaster.GetPrefs
+
+Get the bit types of emails to reject.
+
+If someone opts into ALL emails, or the email is not in the database,
+a `flags` value of 1 will be returned.
+
+Params:
+```json
+{
+    "email": "test@test.com",
+}
+```
+
+Returns:
+```json
+{
+    "flags": 1
+}
+```
+
 ### Postmaster.GetLastEmail
 
 Get the last email sent to `to` with the `uniqueID`. You must be running with
