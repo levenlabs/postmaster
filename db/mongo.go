@@ -132,7 +132,7 @@ func MoveEmailPrefs(oldEmail, newEmail string) error {
 		doc2.Email = newEmail
 		doc2.TSUpdated = n
 		doc2.UnsubFlags = doc.UnsubFlags
-		err = c.Insert(doc2)
+		_, err = c.UpsertId(newEmail, doc2)
 	})
 	return err
 }
