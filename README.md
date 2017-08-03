@@ -1,5 +1,7 @@
 # postmaster
 
+**THIS PROJECT IS NO LONGER MAINTAINED**
+
 The postmaster is responsible for queuing and sending emails. It currently uses
 okq as a backing store and new emails are push'd into the end of the queue.
 The postmaster exposes an API for queuing emails and internally also reads from
